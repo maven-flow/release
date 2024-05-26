@@ -24,6 +24,9 @@ inputs:
   push-changes:
     required: true
     type: boolean
+secrets:
+  token:
+    required: true
 
 runs:
   using: "composite"
@@ -53,6 +56,8 @@ runs:
   - name: Perform Maven release
     shell: bash
     run: mvn -B release:prepare release:perform --file ${{ inputs.pom-file }} ${{ inputs.maven-args }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.token }}
 
   - name: Add next version to changelog
     shell: bash
