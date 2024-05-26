@@ -24,7 +24,6 @@ inputs:
   push-changes:
     required: true
     type: boolean
-secrets:
   token:
     required: true
 
@@ -57,7 +56,7 @@ runs:
     shell: bash
     run: mvn -B release:prepare release:perform --file ${{ inputs.pom-file }} ${{ inputs.maven-args }}
     env:
-      GITHUB_TOKEN: ${{ secrets.token }}
+      GITHUB_TOKEN: ${{ inputs.token }}
 
   - name: Add next version to changelog
     shell: bash
