@@ -26,6 +26,7 @@ inputs:
     type: boolean
   token:
     required: true
+    default: ${{ github.token }}
 
 runs:
   using: "composite"
