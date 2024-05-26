@@ -1,0 +1,82 @@
+name: "Maven Flow Release"
+description: "Perform Maven release with changelog update"
+inputs:
+  changelog-file:
+    description: "Changelog file"
+    default: "CHANGELOG.md"
+    required: false
+    type: string
+  git-user-name:
+    description: "GIT user name (to commit changes)"
+    default: "github-actions[bot]"
+    required: false
+    type: string
+  git-user-email:
+    description: "GIT user email (to commit changes)"
+    default: "github-actions[bot]@users.noreply.github.com"
+    required: false
+    type: string
+  pom-file:
+    description: "Maven POM file"
+    default: "pom.xml"
+    required: false
+    type: string
+  push-changes:
+    required: true
+    type: boolean
+
+runs:
+  using: "composite"
+  steps:
+
+  - name: Get project version
+    id: get-project-version
+    shell: bash
+    run: |
+      projectVersion=$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout --file ${{ inputs.pom-file }} ${{ inputs.maven-args }})
+      echo "Project version: $projectVersion"
+      echo "version=$projectVersion" >> $GITHUB_OUTPUT
+
+  - name: Set up GIT
+    shell: bash
+    run: |
+      git config --local user.name '${{ inputs.git-user-name }}'
+      git config --local user.email '${{ inputs.git-user-email }}'
+
+  - name: Update version date in changelog
+    shell: bash
+    run: |
+      current_date=$(date "+%Y-%m-%d")
+      sed -i "s/\[SNAPSHOT\]/$current_date/g" "${{ inputs.changelog-file }}"
+      git commit -a -m "Updated version date in changelog."
+
+  - name: Perform Maven release
+    shell: bash
+    run: mvn -B release:prepare release:perform --file ${{ inputs.pom-file }} ${{ inputs.maven-args }}
+
+  - name: Add next version to changelog
+    run: |
+      nextVersion=$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout --file ${{ inputs.pom-file }} ${{ inputs.maven-args }})
+      nextVersion=$(echo "$nextVersion" | sed 's/.\{9\}$//')
+      nextVersionText="## [$nextVersion] - [SNAPSHOT]
+      
+      
+      "
+      tempFile=$(mktemp)
+      head -n 7 "${{ inputs.changelog-file }}" > "$tempFile"
+      echo "$nextVersionText" >> "$tempFile"
+      tail -n +8 "${{ inputs.changelog-file }}" >> "$tempFile"
+      mv "$tempFile" "${{ inputs.changelog-file }}"
+      git commit -a -m "Added next version to changelog."
+
+  - name: Push changes
+    shell: bash
+    run: |
+
+      # This condition needs to be inside the script (not in "if" field), because GitHub is unable to properly implement boolean inputs.
+      # https://github.com/actions/runner/issues/2238
+
+      if [ "${{ inputs.push-changes }}" = "true" ]; then
+        echo "Pushing changes:"
+        git push
+      fi
