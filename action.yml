@@ -55,6 +55,7 @@ runs:
     run: mvn -B release:prepare release:perform --file ${{ inputs.pom-file }} ${{ inputs.maven-args }}
 
   - name: Add next version to changelog
+    shell: bash
     run: |
       nextVersion=$(mvn -B help:evaluate -Dexpression=project.version -q -DforceStdout --file ${{ inputs.pom-file }} ${{ inputs.maven-args }})
       nextVersion=$(echo "$nextVersion" | sed 's/.\{9\}$//')
