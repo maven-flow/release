@@ -85,4 +85,5 @@ runs:
       if [ "${{ inputs.push-changes }}" = "true" ]; then
         echo "Pushing changes:"
         git push
+        git push --tags
       fi
